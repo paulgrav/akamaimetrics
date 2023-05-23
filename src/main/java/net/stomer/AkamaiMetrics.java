@@ -156,5 +156,4 @@ public class AkamaiMetrics implements CloudEventsFunction {
              span.end();
         }
     }
-
 }
