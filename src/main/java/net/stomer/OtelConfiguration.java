@@ -18,13 +18,14 @@ import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import java.util.Optional;
 
 /**
  * All SDK management takes place here, away from the instrumentation code, which should only access
  * the OpenTelemetry APIs.
  */
 class OtelConfiguration {
-
+    private static final String OTEL_EXPORTER_OTLP_ENDPOINT = Optional.ofNullable(System.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")).orElse("john");
   /**
    * Initializes the OpenTelemetry SDK with a logging span exporter and the W3C Trace Context
    * propagator.
@@ -44,6 +45,7 @@ class OtelConfiguration {
                     .addSpanProcessor(
                         BatchSpanProcessor.builder(
                                 OtlpGrpcSpanExporter.builder()
+                                    .setEndpoint(OTEL_EXPORTER_OTLP_ENDPOINT)
                                     .setTimeout(2, TimeUnit.SECONDS)
                                     .build())
                             .setScheduleDelay(1000, TimeUnit.MILLISECONDS)
@@ -53,7 +55,7 @@ class OtelConfiguration {
                 SdkMeterProvider.builder()
                     .setResource(resource)
                     .registerMetricReader(
-                        PeriodicMetricReader.builder(OtlpGrpcMetricExporter.getDefault())
+                        PeriodicMetricReader.builder(OtlpGrpcMetricExporter.builder().setEndpoint(OTEL_EXPORTER_OTLP_ENDPOINT).build())
                             .setInterval(Duration.ofMillis(10000))
                             .build())
                     .build())
