@@ -5,6 +5,7 @@ import com.google.cloud.functions.CloudEventsFunction;
 import com.google.events.cloud.storage.v1.StorageObjectData;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
+import com.google.cloud.ReadChannel;
 import io.cloudevents.CloudEvent;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Blob;
@@ -32,13 +33,14 @@ import java.nio.channels.Channels;
 import java.util.zip.GZIPInputStream;
 import org.json.*;
 import java.io.RandomAccessFile;
+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 
 public class AkamaiMetrics implements CloudEventsFunction {
-
+    private static final String INSTRUMENTATION_NAME = AkamaiMetrics.class.getName();
     private static final Logger logger = Logger.getLogger(AkamaiMetrics.class.getName());
-    private static final OpenTelemetry openTelemetry = OtelConfiguration.initOpenTelemetry();
-    private static final Meter meter = openTelemetry.getMeter("net.stomer.AkamaiMetrics");
-    private static final Tracer tracer = openTelemetry.getTracer("net.stomer.AkamaiMetrics");
+    private static final OpenTelemetry openTelemetry = AutoConfiguredOpenTelemetrySdk.initialize().getOpenTelemetrySdk();
+    private static final Meter meter = openTelemetry.getMeter(INSTRUMENTATION_NAME);
+    private static final Tracer tracer = openTelemetry.getTracer(INSTRUMENTATION_NAME);
     private static final Storage storage = StorageOptions.getDefaultInstance().getService();
 
     private static final LongCounter cloudEventCounter =
@@ -122,9 +124,9 @@ public class AkamaiMetrics implements CloudEventsFunction {
     private void readFile(String bucket, String path) {
         Span span = tracer.spanBuilder("readFile").startSpan();
         try (Scope scope = span.makeCurrent()) {
-            //Blob blob = storage.get(bucket, path);
-            //ReadChannel reader = blob.reader();
-            RandomAccessFile filereader = new RandomAccessFile("/Users/paul/Downloads/akamai.txt.gz", "r");
+            Blob blob = storage.get(bucket, path);
+            ReadChannel filereader = blob.reader();
+            //RandomAccessFile filereader = new RandomAccessFile("/Users/paul/Downloads/akamai.txt.gz", "r");
             span.setAttribute("bucket", bucket);
             span.setAttribute("path", path);
 
@@ -132,7 +134,7 @@ public class AkamaiMetrics implements CloudEventsFunction {
             try (   BufferedReader reader =
                         new BufferedReader(
                             new InputStreamReader(
-                                new GZIPInputStream(Channels.newInputStream(filereader.getChannel()))))) {
+                                new GZIPInputStream(Channels.newInputStream(filereader))))) {
 
                 String line;
                 while ((line = reader.readLine()) != null) {
@@ -143,9 +145,9 @@ public class AkamaiMetrics implements CloudEventsFunction {
                 span.setStatus(StatusCode.ERROR, "IOException.");
                 span.recordException(e);
             }
-        } catch (FileNotFoundException e) {
-            span.setStatus(StatusCode.ERROR, "FileNotFoundException");
-            span.recordException(e);
+        //} catch (FileNotFoundException e) {
+        //   span.setStatus(StatusCode.ERROR, "FileNotFoundException");
+        //    span.recordException(e);
         } catch (Throwable t) {
             span.setStatus(StatusCode.ERROR, "Uncaught exception");
             span.recordException(t);

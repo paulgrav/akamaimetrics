@@ -67,6 +67,11 @@
           <artifactId>json</artifactId>
           <version>20230227</version>
       </dependency>
+      <dependency>
+          <groupId>io.opentelemetry</groupId>
+          <artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
+          <version>1.26.0-alpha</version>
+      </dependency>
     <!-- Required for Function primitives -->
     <dependency>
       <groupId>com.google.cloud.functions</groupId>
