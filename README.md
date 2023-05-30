@@ -4,6 +4,19 @@
 
 Google Function to process Akamai Datastream files and emit Open Telemetry data.
 
+Traces for the entry method — `accept(CloudEvent event)` are emitted.
+The following metrics are emitted:
+
+```
+# Counts number of time accept method is called
+akamai_events_accepted_count
+
+# Reports number https responses returned by Akamai edges
+akamai_http_responses_total
+```
+
+A Google Cloud Storage bucket will need to be configure into which the Akamai Datastream logs will be written. The function is triggered via Event Arc whenever a file is written to storage.
+
 ## Deployment
 
 ```
